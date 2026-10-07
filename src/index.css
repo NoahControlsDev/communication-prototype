@@ -1,0 +1,96 @@
+/* Tokens for the Noah Controls portal style: white work area, grey chrome (top bar, sidebar,
+   panels, footer), one orange accent. Green / amber / red only ever mean ok / attention / fault. */
+:root {
+  --bg: #ffffff;
+  --chrome: #eef0f3;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --panel: #eef0f3;
+  --fg: #18212f;
+  --muted: #4c5a6d;
+  --faint: #8691a0;
+  --line: #dde1e7;
+  --line-strong: #c5ccd6;
+  --hover: #e6e9ee;
+  --accent: #e8772e;          /* fills: primary buttons */
+  --accent-fg: #1c1206;
+  --accent-strong: #b3500f;   /* text, underlines, active borders */
+  --accent-soft: #f8e0d0;
+  --danger: #c93434;
+  --danger-soft: #fceaea;
+  --ok: #1c8048;
+  --ok-soft: #e2f4e9;
+  --warn: #9a5c06;
+  --warn-soft: #fcf1dc;
+
+  /* charts: validated with the dataviz skill (slots 1–2 + status critical) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --critical: #d03b3b;
+  --chart-grid: #e3e6ea;
+  --chart-axis: #c3cad2;
+  --chart-muted: #7d8791;
+
+  /* plant mimic: grey equipment, colour only for abnormal */
+  --eq-stroke: #525d66;
+  --eq-fill: #e2e7ea;
+  --eq-fill-on: #aab6bd;
+  --eq-detail: #7b868e;
+  --pipe: #a6b0b7;
+
+  --radius: 10px;
+  --shadow-pop: 0 8px 28px rgb(16 24 32 / .14);
+  --topbar-h: 58px;
+  --footer-h: 38px;
+  --sans: 'Lexend Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  font: 300 14.5px/1.45 var(--sans);
+  color: var(--fg);
+  background: var(--bg);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c;
+    --chrome: #1a2028;
+    --surface: #12161c;
+    --surface-2: #171c23;
+    --panel: #1a2028;
+    --fg: #e4e8ee;
+    --muted: #9aa6b4;
+    --faint: #6f7b89;
+    --line: #2a323c;
+    --line-strong: #3a4450;
+    --hover: #222a33;
+    --accent: #ee8440;
+    --accent-fg: #1c1206;
+    --accent-strong: #f29a5e;
+    --accent-soft: #3a261a;
+    --danger: #f06a6a;
+    --danger-soft: #371b1e;
+    --ok: #4fc885;
+    --ok-soft: #142d22;
+    --warn: #efb24e;
+    --warn-soft: #332812;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --chart-grid: #262e37;
+    --chart-axis: #343e49;
+    --chart-muted: #8792a0;
+    --eq-stroke: #8a959e;
+    --eq-fill: #212a31;
+    --eq-fill-on: #41505a;
+    --eq-detail: #6d7881;
+    --pipe: #44515a;
+    --shadow-pop: 0 8px 28px rgb(0 0 0 / .5);
+    color-scheme: dark;
+  }
+}
+
+body { margin: 0; background: var(--bg); }
+* { box-sizing: border-box; }
+strong, b { font-weight: 600; }
+
+[hidden] { display: none !important; }
