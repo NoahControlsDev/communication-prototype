@@ -19,14 +19,13 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`
 
 const TABS = ['system', 'held', 'declined']
 
-// The tab lives in the URL (#/data/held) so a refresh keeps it.
 export default function DataPage({ tab: urlTab }) {
   const tab = TABS.includes(urlTab) ? urlTab : 'system'
   const setTab = (t) => { window.location.hash = `#/data/${t}` }
   const [query, setQuery] = useState('')
   const [auto, setAuto] = useState(false)
   const [range, setRange] = useState('1h')
-  const [tick, setTick] = useState(0) // bumps on refresh so open small multiples refetch too
+  const [tick, setTick] = useState(0)
   const latest = useLoad(api.dataLatest)
   const held = useLoad(api.dataUnapproved)
   const stats = useLoad(() => api.dataStats(range), [range])
@@ -41,7 +40,6 @@ export default function DataPage({ tab: urlTab }) {
   const reloadAll = useMemo(() => () => {
     reloadLatest(); reloadHeld(); reloadStats(); reloadGateways(); reloadDeclined(); setTick((t) => t + 1)
   }, [reloadLatest, reloadHeld, reloadStats, reloadGateways, reloadDeclined])
-  // Optional live refresh every 10 s.
   useEffect(() => {
     if (!auto) return undefined
     const t = setInterval(reloadAll, 10_000)
@@ -67,7 +65,6 @@ export default function DataPage({ tab: urlTab }) {
       </PageHeader>
       <Errors errors={[latest.error, held.error, stats.error, gateways.error, declined.error]} />
 
-      {/* One filter row: the range scopes the ingestion chart and every device chart below. */}
       <div className="filter-row">
         <RangePicker value={range} onChange={setRange} />
       </div>
@@ -119,7 +116,6 @@ export default function DataPage({ tab: urlTab }) {
 
 const matches = (q, ...values) => !q || values.some((v) => v?.toLowerCase().includes(q))
 
-// gateway → device → rows, preserving order
 function groupRows(rows, deviceKeyOf = (r) => r.device_key) {
   const gateways = new Map()
   for (const r of rows) {
@@ -144,8 +140,6 @@ function Collapsible({ head, children, defaultOpen = false, depth = 0 }) {
     </div>
   )
 }
-
-// ------------------------------------------------------------------ in the system
 
 function InSystem({ rows, query, range, tick }) {
   const q = query.trim().toLowerCase()
@@ -219,8 +213,6 @@ function DeviceBlock({ deviceKey, points, q, out, newest, range, tick }) {
     </Collapsible>
   )
 }
-
-// ------------------------------------------------------------------ not approved
 
 function NotApproved({ rows, retention, query, onChanged }) {
   const action = useAction()
@@ -327,8 +319,6 @@ function NotApproved({ rows, retention, query, onChanged }) {
     </>
   )
 }
-
-// ------------------------------------------------------------------ declined
 
 function Declined({ data, query, onChanged }) {
   const action = useAction()

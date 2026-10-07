@@ -1,7 +1,3 @@
-// The glyph library: the only per-shape code. Each draws into a 108 x 96 cell.
-// Parts carry classes the stylesheet animates from the device's state:
-//   .eq-live → fills darker when running · .spin → rotates when running · .alm → alarm dot
-
 const Pump = () => (
   <>
     <path className="pl-pipe" d="M0 44h14M44 14V0" />
@@ -47,7 +43,6 @@ const FanBox = () => (
   </>
 )
 
-// Fallback for a type with no drawing yet: a box with an activity indicator.
 const Generic = () => (
   <>
     <rect className="pl-eq pl-live" x="14" y="12" width="80" height="62" rx="5" />
@@ -59,7 +54,6 @@ const Generic = () => (
   </>
 )
 
-// Keys must match GLYPH_NAMES in model.js.
 const GLYPHS = { pump: Pump, vessel: Vessel, fanbox: FanBox, generic: Generic }
 
 export function Glyph({ name }) {

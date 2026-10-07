@@ -6,9 +6,6 @@ import { formatValue, formatTime, tickFormatter, toSeries } from './format.js'
 
 const AXIS_TICK = { fill: 'var(--chart-muted)', fontSize: 12 }
 
-// One property over time: a single 2px line (no legend: the title names it), the
-// effective min/max as hairline reference lines, out-of-range buckets marked with a
-// critical dot, a crosshair tooltip, and a table view with every value.
 export default function TimeSeriesChart({ points, unit, lo, hi, range, height = 260, title }) {
   const [asTable, setAsTable] = useState(false)
   const data = toSeries(points)
@@ -58,13 +55,11 @@ export default function TimeSeriesChart({ points, unit, lo, hi, range, height = 
   )
 }
 
-// Only buckets that contain an out-of-range reading get a marker (critical, 2px surface ring).
 function OutOfRangeDot({ cx, cy, payload, index }) {
   if (payload?.q !== 2 || cx == null || cy == null) return <g key={index} />
   return <circle key={index} cx={cx} cy={cy} r={4} fill="var(--critical)" stroke="var(--surface)" strokeWidth={2} />
 }
 
-// Value first (strong), then when, then the bucket detail. Out of range carries icon + label.
 function ValueTooltip({ active, payload, unit }) {
   if (!active || !payload?.length) return null
   const p = payload[0].payload

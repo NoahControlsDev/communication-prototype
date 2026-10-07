@@ -3,8 +3,6 @@ import { api } from './api.js'
 import { useLoad } from './lib.js'
 import { deviceState } from './plant/model.js'
 
-// Live state of every device (running, alarm, stale, latest values), refreshed on a timer.
-// states: Map of device id → deviceState (see plant/model.js).
 export function useLive(pollMs = 5000) {
   const devices = useLoad(api.devices)
   const profiles = useLoad(api.profiles)

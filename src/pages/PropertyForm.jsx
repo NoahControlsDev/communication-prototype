@@ -6,7 +6,6 @@ const EMPTY = {
   writable: false, priority: '', enum_map: '', required: true, haystack_tags: '',
 }
 
-// A saved property → form strings (null → '', objects → JSON, tags → comma list).
 function toForm(p) {
   if (!p) return EMPTY
   const form = { ...EMPTY }
@@ -21,7 +20,6 @@ function toForm(p) {
   return form
 }
 
-// Create (no `initial`) or edit (with `initial`) a profile property.
 export default function PropertyForm({ enums, initial, onSubmit, onCancel }) {
   const [form, setForm] = useState(() => toForm(initial))
   const [jsonError, setJsonError] = useState('')
@@ -38,7 +36,7 @@ export default function PropertyForm({ enums, initial, onSubmit, onCancel }) {
     const tags = form.haystack_tags.split(',').map((t) => t.trim()).filter(Boolean)
     const ok = await onSubmit({
       ...form,
-      priority: form.kind === 'alarm' ? form.priority : '', // DB rule: alarms only
+      priority: form.kind === 'alarm' ? form.priority : '',
       enum_map: enumMap,
       haystack_tags: tags,
     })

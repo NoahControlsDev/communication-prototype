@@ -27,8 +27,6 @@ const EXAMPLE = JSON.stringify({
   }],
 }, null, 2)
 
-// ---------------------------------------------------------------- list
-
 function CertificateList() {
   const [status, setStatus] = useState('pending')
   const certs = useLoad(() => api.certificates(status), [status])
@@ -69,7 +67,6 @@ function CertificateList() {
   )
 }
 
-// Paste a birth message by hand; the same format gateways publish on bas/<GATEWAY_ID>/birth.
 function SubmitCard({ onClose, onSubmitted }) {
   const [text, setText] = useState(EXAMPLE)
   const action = useAction()
@@ -80,7 +77,6 @@ function SubmitCard({ onClose, onSubmitted }) {
       let payload
       try { payload = JSON.parse(text) } catch { throw new Error('Not valid JSON') }
       const { certificates } = await api.submitCertificate(payload)
-      // One device → open it; several → back to the list.
       if (certificates.length === 1) go(`#/certificates/${certificates[0].id}`)
       else { onClose(); onSubmitted(); certificatesChanged() }
     })
@@ -103,8 +99,6 @@ function SubmitCard({ onClose, onSubmitted }) {
     </Card>
   )
 }
-
-// ---------------------------------------------------------------- detail
 
 function CertificateDetail({ id }) {
   const cert = useLoad(() => api.certificate(id), [id])
@@ -210,7 +204,6 @@ function Decision({ cert, onDone }) {
     if (await action.run(() => api.acceptCertificate(cert.id, body))) { onDone(); certificatesChanged() }
   }
 
-  // Device already registered: accepting only adds its unknown fields for review.
   if (cert.existing_device) {
     const d = cert.existing_device
     const n = d.unknown_fields.length

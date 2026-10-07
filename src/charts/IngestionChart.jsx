@@ -8,8 +8,6 @@ const SERIES = [
   { key: 'held', label: 'Held (not approved)', color: 'var(--series-2)' },
 ]
 
-// Values arriving per bucket, stored vs held, as stacked columns. Two series → a legend,
-// which also carries each series' total as its direct label.
 export default function IngestionChart({ stats, range, height = 200 }) {
   const [asTable, setAsTable] = useState(false)
   const data = toSeries(stats.buckets)
@@ -45,7 +43,6 @@ export default function IngestionChart({ stats, range, height = 200 }) {
               <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} width={52} allowDecimals={false}
                 tickFormatter={formatCount} />
               <Tooltip content={<StackTooltip />} cursor={{ fill: 'var(--hover)' }} isAnimationActive={false} />
-              {/* The surface-colored stroke is the 2px gap between stacked segments. */}
               <Bar dataKey="stored" stackId="a" fill="var(--series-1)" stroke="var(--surface)" strokeWidth={1}
                 maxBarSize={24} isAnimationActive={false} />
               <Bar dataKey="held" stackId="a" fill="var(--series-2)" stroke="var(--surface)" strokeWidth={1}

@@ -9,8 +9,6 @@ const STATUS_TONE = { pending: 'warn', accepted: 'ok', declined: 'neutral' }
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 const lastSegment = (key) => key?.split('.').pop()
 
-// Browses a (possibly long) list of certificates: grouped by location or by field set,
-// searchable, collapsible, with bulk actions when they're pending.
 export default function CertificateBrowser({ certs, status, onChanged }) {
   const [view, setView] = useState('location')
   const [query, setQuery] = useState('')
@@ -31,7 +29,6 @@ export default function CertificateBrowser({ certs, status, onChanged }) {
     [view, visible],
   )
 
-  // While searching, everything matching is shown expanded.
   const isOpen = (id) => Boolean(q) || open.has(id)
   const toggle = (id) => setOpen((s) => {
     const n = new Set(s)
@@ -42,7 +39,6 @@ export default function CertificateBrowser({ certs, status, onChanged }) {
   const expandAll = () => setOpen(new Set(allGroupIds(groups)))
   const collapseAll = () => setOpen(new Set())
 
-  // Selecting a group selects every certificate in it.
   const select = (ids, on) => setSelected((s) => {
     const n = new Set(s)
     ids.forEach((id) => (on ? n.add(id) : n.delete(id)))
@@ -71,7 +67,6 @@ export default function CertificateBrowser({ certs, status, onChanged }) {
 
   const ctx = { isOpen, toggle, selected, select, pending, decline, reopen, onChanged: done }
 
-  // What the selection can do depends on the statuses in it.
   const selectedCerts = visible.filter((c) => selected.has(c.id))
   const idsWith = (st) => selectedCerts.filter((c) => c.status === st).map((c) => c.id)
 
@@ -114,9 +109,6 @@ export default function CertificateBrowser({ certs, status, onChanged }) {
   )
 }
 
-// ------------------------------------------------------------------ grouping
-
-// gateway → each segment of the device key except the last (site → system → …) → certificates
 function locationTree(certs) {
   const root = { id: '', children: new Map(), certs: [] }
   for (const c of certs) {
@@ -134,7 +126,6 @@ function locationTree(certs) {
   return root
 }
 
-// Devices reporting exactly the same property keys, largest group first.
 function fieldSetGroups(certs) {
   const bySignature = new Map()
   for (const c of certs) {
@@ -154,8 +145,6 @@ function allGroupIds(groups) {
   const walk = (n) => [n.id, ...[...n.children.values()].flatMap(walk)]
   return [...groups.children.values()].flatMap(walk)
 }
-
-// ------------------------------------------------------------------ pieces
 
 function GroupHeader({ id, depth = 0, label, certs, meta, ctx, children }) {
   const ids = certs.map((c) => c.id)
@@ -266,8 +255,6 @@ function FieldSetGroup({ group, ctx }) {
   )
 }
 
-// One profile decision for every device in a field-set group. Candidates come from the
-// first certificate: every device in the group reports the same fields, so they match alike.
 function GroupAccept({ certs, onCancel, onDone }) {
   const sample = useLoad(() => api.certificate(certs[0].id), [certs[0].id])
   const enums = useLoad(api.enums)
@@ -308,4 +295,3 @@ function GroupAccept({ certs, onCancel, onDone }) {
     </form>
   )
 }
-

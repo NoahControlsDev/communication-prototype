@@ -69,8 +69,6 @@ function ProfileList() {
   )
 }
 
-// How the Plant page draws devices of this type: glyph, which property means running,
-// and two readouts. Stored as profile.display (config, not code).
 function DisplayEditor({ display, keys, onSave }) {
   const [d, setD] = useState(() => ({
     glyph: display?.glyph ?? 'generic',
@@ -128,7 +126,7 @@ function ProfileDetail({ id }) {
   const properties = useLoad(() => api.properties(id), [id])
   const enums = useLoad(api.enums)
   const action = useAction()
-  const [editing, setEditing] = useState(null) // property id, or 'new'
+  const [editing, setEditing] = useState(null)
 
   const profile = profiles.data?.find((p) => p.id === id)
   const reload = () => { profiles.reload(); properties.reload() }

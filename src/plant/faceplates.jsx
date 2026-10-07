@@ -1,14 +1,8 @@
 import { formatValue } from '../charts/format.js'
 
-// Detailed device drawings for the system map. Each is driven by the device's live state
-// (see deviceState in model.js): the equipment on the left animates from the data, and up to
-// three values are drawn beside it as readouts with their range.
-// Like the small glyphs, nothing here knows a specific device: it all comes from the profile.
-
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
 const num = (p) => (p && p.value !== null && p.value !== undefined ? Number(p.value) : null)
 
-// Where a value sits in its declared range, 0–1. Percent values need no declared range.
 function position(p) {
   const v = num(p)
   if (v === null) return null
@@ -17,8 +11,6 @@ function position(p) {
   return null
 }
 
-// The value that says how hard the device is working (an output, a speed): drives flame
-// size, rotation speed and the load bar. Prefers % or Hz; falls back to the first readout.
 function drivePoint(s) {
   const usable = s.points.filter((p) => position(p) !== null)
   return usable.find((p) => p.unit === '%' || p.unit === 'Hz')
@@ -26,16 +18,13 @@ function drivePoint(s) {
     ?? null
 }
 
-// → { active, load (0–1 or null), drive }
 function activity(s) {
   const drive = drivePoint(s)
   const load = drive ? position(drive) : null
-  // With no running rule on the profile, a non-zero load is the best sign of activity.
   const active = !s.dim && (s.running || (s.label === 'NO RUN RULE' && load > 0))
   return { active, load, drive }
 }
 
-// Up to three values: the profile's readouts first, then measurements, then anything else.
 function pickReadouts(s) {
   const chosen = s.readouts.map((r) => r.point).filter(Boolean)
   const rest = s.points.filter((p) => !chosen.includes(p))
@@ -66,7 +55,6 @@ function Readout({ x, y, p, dim }) {
   )
 }
 
-// Load bar under the equipment: how hard it is working, with the value it is read from.
 function LoadBar({ load, drive, dim }) {
   if (load === null) return null
   return (
@@ -79,9 +67,6 @@ function LoadBar({ load, drive, dim }) {
   )
 }
 
-// --- equipment --------------------------------------------------------------------------
-
-// Fire-tube boiler / water heater: burner on the left, flame length follows the load.
 function Boiler({ active, load }) {
   const flame = active ? 0.35 + 0.65 * (load ?? 0.6) : 0
   return (
@@ -105,7 +90,6 @@ function Boiler({ active, load }) {
   )
 }
 
-// Centrifugal pump: the impeller turns faster as the load rises.
 function Pump({ active, load }) {
   const seconds = active ? 2.4 - 1.9 * (load ?? 0.5) : 0
   return (
@@ -130,7 +114,6 @@ function Pump({ active, load }) {
   )
 }
 
-// Air handler: fan, coil and outlet air. Fan speed and the air stream follow the load.
 function FanBox({ active, load }) {
   const seconds = active ? 2 - 1.6 * (load ?? 0.5) : 0
   return (
@@ -152,7 +135,6 @@ function FanBox({ active, load }) {
   )
 }
 
-// A type with no drawing yet: a control panel whose lamps are its status, command and alarm points.
 function Panel({ s, active }) {
   const lamps = s.points.filter((p) => p.kind !== 'measure' && num(p) !== null).slice(0, 5)
   return (

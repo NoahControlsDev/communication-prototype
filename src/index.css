@@ -1,5 +1,3 @@
-/* Tokens for the Noah Controls portal style: white work area, grey chrome (top bar, sidebar,
-   panels, footer), one orange accent. Green / amber / red only ever mean ok / attention / fault. */
 :root {
   --bg: #ffffff;
   --chrome: #eef0f3;
@@ -12,9 +10,9 @@
   --line: #dde1e7;
   --line-strong: #c5ccd6;
   --hover: #e6e9ee;
-  --accent: #e8772e;          /* fills: primary buttons */
+  --accent: #e8772e;
   --accent-fg: #1c1206;
-  --accent-strong: #b3500f;   /* text, underlines, active borders */
+  --accent-strong: #b3500f;
   --accent-soft: #f8e0d0;
   --danger: #c93434;
   --danger-soft: #fceaea;
@@ -23,7 +21,6 @@
   --warn: #9a5c06;
   --warn-soft: #fcf1dc;
 
-  /* charts: validated with the dataviz skill (slots 1–2 + status critical) */
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --critical: #d03b3b;
@@ -31,7 +28,6 @@
   --chart-axis: #c3cad2;
   --chart-muted: #7d8791;
 
-  /* plant mimic: grey equipment, colour only for abnormal */
   --eq-stroke: #525d66;
   --eq-fill: #e2e7ea;
   --eq-fill-on: #aab6bd;

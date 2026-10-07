@@ -1,8 +1,6 @@
 import { profileName, show } from '../../lib.js'
 import { Badge } from '../../ui.jsx'
 
-// Pick an existing profile (ranked candidates) or build a new one from the certificate's fields.
-// `devices` > 1 when the choice applies to a whole group with the same field set.
 export default function ProfileChoice({ cert, choice, onChoice, newProfile, onNewProfile, kinds, devices = 1 }) {
   const chosen = cert.candidates.find((c) => String(c.id) === choice)
 

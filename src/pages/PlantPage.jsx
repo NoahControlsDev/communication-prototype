@@ -8,8 +8,6 @@ import { formatValue } from '../charts/format.js'
 
 const POLL_MS = 5000
 
-// Live plant mimic: every device drawn from its profile's display config, animated from
-// the latest readings. Polls every 5 s; the previous frame stays up while it refreshes.
 export default function PlantPage() {
   const devices = useLoad(api.devices)
   const profiles = useLoad(api.profiles)

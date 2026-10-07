@@ -13,10 +13,9 @@ import { useLoad, go } from './lib.js'
 import { COMPANY, GatewayDot } from './ui.jsx'
 import './App.css'
 
-const REFRESH_MS = 15_000
+const REFRESH_MS = 5_000
 const NOT_YET = 'Not available in this prototype yet'
 
-// Minimal hash routing: #/devices, #/devices/6 (id), #/data/held (sub) ...
 function useRoute() {
   const parse = () => {
     const [page = 'devices', part, tab] = window.location.hash.replace(/^#\/?/, '').split('/')
@@ -32,9 +31,34 @@ function useRoute() {
   return route
 }
 
-// The portal's sections. Those with no `items` have nothing behind them yet: they are
-// listed so the menu is complete, but can't be opened.
-function buildSections({ systems, devices, gateways, pending }) {
+const SEVERITY_RANK = { critical: 3, warning: 2, offline: 1 }
+
+function openAlerts(alerts, key) {
+  const found = new Map()
+  for (const a of alerts) {
+    if (a.state === 'resolved' || a.silenced || a[key] === null) continue
+    const entry = found.get(a[key]) ?? { severity: a.severity, count: 0 }
+    entry.count += 1
+    if (SEVERITY_RANK[a.severity] > SEVERITY_RANK[entry.severity]) entry.severity = a.severity
+    found.set(a[key], entry)
+  }
+  return found
+}
+
+function AlertMark({ alert }) {
+  const text = `${alert.count} open alert${alert.count === 1 ? '' : 's'}`
+  return (
+    <svg className={`nav-alert alert-${alert.severity}`} viewBox="0 0 16 16" role="img" aria-label={text}>
+      <title>{text}</title>
+      <path d="M8 1.6 15 14H1z" />
+      <path className="nav-alert-mark" d="M8 6.2v3.6M8 11.8v.2" />
+    </svg>
+  )
+}
+
+function buildSections({ systems, devices, gateways, pending, alerts }) {
+  const byDevice = openAlerts(alerts, 'device_id')
+  const bySystem = openAlerts(alerts, 'system_id')
   const page = (href, label, extra) => ({ href, label, pages: [href.slice(2)], ...extra })
   return [
     { id: 'company', label: 'Company', items: [{ label: COMPANY }] },
@@ -45,14 +69,14 @@ function buildSections({ systems, devices, gateways, pending }) {
       id: 'systems', label: 'Systems',
       items: [
         { href: '#/systems', label: 'All systems', all: true, page: 'systems', id: null },
-        ...systems.map((s) => ({ href: `#/systems/${s.id}`, label: s.name, page: 'systems', id: s.id })),
+        ...systems.map((s) => ({ href: `#/systems/${s.id}`, label: s.name, page: 'systems', id: s.id, alert: bySystem.get(s.id) })),
       ],
     },
     {
       id: 'devices', label: 'Devices',
       items: [
         { href: '#/devices', label: 'All devices', all: true, page: 'devices', id: null },
-        ...devices.map((d) => ({ href: `#/devices/${d.id}`, label: d.name, page: 'devices', id: d.id })),
+        ...devices.map((d) => ({ href: `#/devices/${d.id}`, label: d.name, page: 'devices', id: d.id, alert: byDevice.get(d.id) })),
       ],
     },
     {
@@ -84,7 +108,6 @@ const Chevron = () => (
   </svg>
 )
 
-// The real logo is used when Frontend/public/logo.png exists; otherwise a text wordmark.
 function Logo() {
   const [missing, setMissing] = useState(false)
   return (
@@ -100,28 +123,26 @@ export default function App() {
   const route = useRoute()
   const { page, id, sub } = route
 
-  // Everything the chrome shows: refreshed on navigation, after certificate decisions, and on a timer.
   const pending = useLoad(() => api.certificates('pending'), [page, id])
   const systems = useLoad(() => api.list('systems'), [page, id])
   const devices = useLoad(api.devices, [page, id])
   const gateways = useLoad(() => api.list('gateways'), [page, id])
   const health = useLoad(api.health, [page, id])
-  const reloads = [pending.reload, systems.reload, devices.reload, gateways.reload, health.reload]
+  const alerts = useLoad(() => api.alerts(), [page, id])
+  const reloads = [pending.reload, systems.reload, devices.reload, gateways.reload, health.reload, alerts.reload]
   useEffect(() => {
     const reloadAll = () => reloads.forEach((r) => r())
     window.addEventListener('certificates-changed', reloadAll)
     const t = setInterval(reloadAll, REFRESH_MS)
     return () => { window.removeEventListener('certificates-changed', reloadAll); clearInterval(t) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, reloads)
 
   const sections = buildSections({
     systems: systems.data ?? [], devices: devices.data ?? [], gateways: gateways.data ?? [],
-    pending: pending.data?.length ?? 0,
+    pending: pending.data?.length ?? 0, alerts: alerts.data ?? [],
   })
   const currentSection = sections.find((s) => s.items?.some((i) => isActive(i, route)))?.id
 
-  // Sections stay as the user left them; the one holding the current page is always open.
   const [open, setOpen] = useState(() => new Set(['company']))
   const toggle = (sid) => setOpen((s) => { const n = new Set(s); if (n.has(sid)) n.delete(sid); else n.add(sid); return n })
   const [seen, setSeen] = useState(null)
@@ -179,6 +200,7 @@ export default function App() {
                           className={`nav-item ${item.all ? 'all' : ''} ${isActive(item, route) ? 'active' : ''}`}>
                           {'status' in item && <GatewayDot status={item.status} />}
                           <span className="nav-label">{item.label}</span>
+                          {item.alert && <AlertMark alert={item.alert} />}
                           {item.count > 0 && <span className="count">{item.count}</span>}
                         </a>
                       ) : (

@@ -1,6 +1,3 @@
-// Helpers behind the "which profile?" choice, shared by single and group accept.
-
-// Guesses from the field name, unless the certificate says otherwise. Always review.
 export function suggest(f) {
   const k = f.key
   const kind = f.kind
@@ -16,12 +13,10 @@ export function suggest(f) {
     unit: f.unit ?? '',
     writable: f.writable ?? kind === 'command',
     required: true,
-    // Carried straight from the certificate; the gateway is the source of truth for these.
     ...Object.fromEntries(['min', 'max', 'acquisition', 'deadband'].filter((m) => f[m] !== undefined).map((m) => [m, f[m]])),
   }
 }
 
-// Declared profile first, then an exact match; otherwise start on "create new".
 export function initialChoice(cert) {
   const first = cert.candidates.find((c) => c.declared) ?? cert.candidates.find((c) => c.exact)
   return first ? String(first.id) : 'new'
@@ -31,7 +26,6 @@ export function initialNewProfile(cert) {
   return { key: cert.declared_profile?.split('@')[0] ?? '', major: 1, minor: 0, fields: cert.fields.map(suggest) }
 }
 
-// → the `profile` part of an accept request
 export function profileDecision(choice, newProfile) {
   if (choice !== 'new') return { mode: 'existing', profile_id: Number(choice) }
   return {

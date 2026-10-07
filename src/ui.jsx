@@ -1,6 +1,5 @@
 export const COMPANY = 'Noah Controls'
 
-// Sidebar section each page belongs to; shown as the small label above the page title.
 const SECTION = {
   systems: 'Systems', devices: 'Devices', gateways: 'Gateways',
   certificates: 'Commissioning', fields: 'Commissioning', profiles: 'Commissioning',
@@ -8,9 +7,6 @@ const SECTION = {
 }
 const currentSection = () => SECTION[window.location.hash.replace(/^#\/?/, '').split('/')[0] || 'devices']
 
-// Breadcrumb, section label, title, optional one-line description, and actions on the right.
-// The trail is: company / crumbs (links) / current page. `back` is a one-item shortcut for
-// crumbs; `current` names the page when the title isn't plain text.
 export function PageHeader({ title, subtitle, back, crumbs, current, children }) {
   const trail = crumbs ?? (back ? [back] : [])
   const here = current ?? (typeof title === 'string' ? title : null)
@@ -56,13 +52,10 @@ export function Badge({ tone = 'neutral', children }) {
   return <span className={`badge ${tone}`}>{children}</span>
 }
 
-// A device's own status. "pending" here means accepted but not yet placed in a system,
-// shown as "not placed" so it can't be mistaken for a pending birth certificate.
 export const StatusBadge = ({ status }) => (
   <Badge tone={status === 'commissioned' ? 'ok' : 'warn'}>{status === 'pending' ? 'not placed' : status}</Badge>
 )
 
-// Gateway connection: online, offline, or never reported a status.
 export const GatewayDot = ({ status }) => (
   <span className={`dot ${status === 'online' ? 'ok' : status === 'offline' ? 'danger' : ''}`}
     title={status ?? 'never connected'} />

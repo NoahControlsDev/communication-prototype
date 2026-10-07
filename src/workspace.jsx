@@ -1,10 +1,8 @@
+import { useEffect } from 'react'
 import { api } from './api.js'
-import { useLoad } from './lib.js'
+import { useLoad, useAction } from './lib.js'
 import { Errors } from './ui.jsx'
 import { formatValue } from './charts/format.js'
-
-// Pieces shared by the device and system workspaces: status pills, tabs, value tiles, and the
-// Alerts / Events / Documents tabs.
 
 export const NOT_YET = 'Not available in this prototype yet'
 
@@ -15,7 +13,6 @@ const ICONS = {
   info: 'M8 7.4v3.8M8 4.8v.2',
 }
 
-// Solid status pill: normal (green), warning (yellow), critical (red), offline (slate), info (navy).
 export function Pill({ tone = 'normal', children }) {
   return (
     <span className={`pill pill-${tone}`}>
@@ -28,7 +25,6 @@ export function Pill({ tone = 'normal', children }) {
   )
 }
 
-// One word for a device's condition, from its live state.
 export function deviceStatus(s) {
   if (!s) return { tone: 'offline', label: 'Unknown' }
   if (s.dim) return { tone: 'offline', label: s.label === 'NO DATA' ? 'No data' : 'Offline' }
@@ -37,7 +33,6 @@ export function deviceStatus(s) {
   return { tone: 'normal', label: 'Normal' }
 }
 
-// The worst condition among several devices.
 export function groupStatus(states) {
   if (!states.length) return { tone: 'offline', label: 'No devices' }
   const all = states.map(deviceStatus)
@@ -53,7 +48,6 @@ export const DeviceStatusPill = ({ s }) => {
   return <Pill tone={st.tone}>{st.label}</Pill>
 }
 
-// "On" / "Off" from the profile's running rule, plus whether the values are current.
 export function RunPills({ s }) {
   if (!s) return null
   const run = s.label === 'RUNNING' ? <Pill tone={s.alarm ? 'warning' : 'normal'}>On</Pill>
@@ -89,7 +83,6 @@ export const pointValue = (p) => (
   p.value === null || p.value === undefined ? '—' : `${formatValue(Number(p.value))}${p.unit ? ` ${p.unit}` : ''}`
 )
 
-// A device's headline values: the profile's readouts first, then its measurements.
 export function ValueTiles({ s, max = 4 }) {
   if (!s?.points.length) return null
   const chosen = s.readouts.map((r) => r.point).filter(Boolean)
@@ -101,108 +94,127 @@ export function ValueTiles({ s, max = 4 }) {
   )
 }
 
-// --- Alerts ------------------------------------------------------------------------------
+const SEVERITY = { critical: 'Critical', warning: 'Warning', offline: 'Offline', info: 'Info' }
+const when = (t) => new Date(t).toLocaleString()
 
-// Conditions that are true right now. Nothing is stored yet, so there is no history and
-// nothing to acknowledge: an alert is listed for as long as its condition holds.
-export function currentAlerts(states) {
-  return states.flatMap((s) => {
-    const source = s.device.name
-    if (s.label === 'OFFLINE') {
-      return [{ id: `${s.device.id}:offline`, time: s.newest, alert: `${source} offline`, source, severity: 'offline',
-        message: `Gateway ${s.device.gateway_key} is offline; values are not arriving.` }]
-    }
-    if (s.dim) return []
-    return [
-      ...s.alarms.map((key) => ({ id: `${s.device.id}:${key}`, time: s.values[key].time, alert: `${source} ${key}`, source,
-        severity: 'critical', message: `${key} is active.` })),
-      ...s.outOfRange.map((key) => ({ id: `${s.device.id}:${key}:range`, time: s.values[key].time, alert: `${source} ${key}`, source,
-        severity: 'warning', message: `${key} is outside its range (${pointValue(s.values[key])}).` })),
-    ]
-  })
-}
-
-const SEVERITY = { critical: 'Critical', warning: 'Warning', offline: 'Offline' }
-
-export function AlertsPanel({ states }) {
-  const alerts = currentAlerts(states)
+function AlertState({ a }) {
+  if (a.state === 'resolved') {
+    return (
+      <>
+        <Pill tone="offline">{a.resolved_by ? 'Cleared' : 'Resolved'}</Pill>
+        <div className="sub">{a.resolved_by ? `by ${a.resolved_by}, ` : ''}{when(a.resolved_at)}</div>
+      </>
+    )
+  }
   return (
     <>
-      <p className="note">
-        Alerts are conditions that need attention right now: an active alarm point, a value outside its range, or a
-        device whose gateway is offline. They are worked out from live values, so an alert disappears when its
-        condition clears. Alert history, Acknowledge, Silence and Clear are not available yet.
-      </p>
-      <div className="list-panel table-scroll">
-        <table>
-          <thead><tr><th>Last value</th><th>Alert</th><th>Source</th><th>Message</th><th>Severity</th><th>State</th><th>Actions</th></tr></thead>
-          <tbody>
-            {alerts.map((a) => (
-              <tr key={a.id}>
-                <td className="nowrap">{a.time ? new Date(a.time).toLocaleString() : '—'}</td>
-                <td>{a.alert}</td>
-                <td>{a.source}</td>
-                <td>{a.message}</td>
-                <td><Pill tone={a.severity}>{SEVERITY[a.severity]}</Pill></td>
-                <td><Pill tone="warning">Active</Pill></td>
-                <td className="nowrap">
-                  <button className="small primary" disabled title={NOT_YET}>Acknowledge</button>{' '}
-                  <button className="small" disabled title={NOT_YET}>Silence</button>{' '}
-                  <button className="small" disabled title={NOT_YET}>Clear</button>
-                </td>
-              </tr>
-            ))}
-            {!alerts.length && <tr><td colSpan={7} className="sub">No active alerts.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-      <Records n={alerts.length} />
+      {a.state === 'acknowledged' ? <Pill tone="info">Acknowledged</Pill> : <Pill tone="warning">Active</Pill>}
+      {a.silenced && <> <Pill tone="offline">Silenced</Pill></>}
+      {a.state === 'acknowledged' && <div className="sub">by {a.acknowledged_by}, {when(a.acknowledged_at)}</div>}
+      {a.silenced && <div className="sub">until {when(a.silenced_until)}</div>}
     </>
   )
 }
 
-// --- Events ------------------------------------------------------------------------------
+export function AlertsPanel({ scope }) {
+  const alerts = useLoad(() => api.alerts(scope), [scope.device_id, scope.system_id])
+  const action = useAction()
+  const { reload } = alerts
+  useEffect(() => {
+    const t = setInterval(reload, 5000)
+    return () => clearInterval(t)
+  }, [reload])
 
-// The only occurrences recorded today are birth certificates: a device announcing itself,
-// and the decision made about it.
-export function EventsPanel({ devices }) {
+  const run = (fn) => async () => { if (await action.run(fn)) reload() }
+  const clear = (a) => async () => {
+    if (!window.confirm(`Clear "${a.title}"? If its condition still holds, it is raised again with the next value.`)) return
+    if (await action.run(() => api.clearAlert(a.id))) reload()
+  }
+  const rows = alerts.data ?? []
+
+  return (
+    <>
+      <p className="note">
+        Alerts are conditions that need attention: an active alarm point, a value outside its range, or a device
+        whose gateway is offline. An alert resolves on its own when its condition clears. Acknowledge records that
+        someone has seen it, Silence marks it as quiet for an hour, and Clear closes it by hand.
+      </p>
+      <Errors errors={[alerts.error, action.error]} />
+      <div className="list-panel table-scroll">
+        <table>
+          <thead><tr><th>Created</th><th>Alert</th><th>Source</th><th>Message</th><th>Severity</th><th>State</th><th>Actions</th></tr></thead>
+          <tbody>
+            {rows.map((a) => (
+              <tr key={a.id}>
+                <td className="nowrap">{when(a.raised_at)}</td>
+                <td>{a.title}</td>
+                <td><a className="plain-link" href={`#/devices/${a.device_id}`}>{a.device_name}</a></td>
+                <td>{a.message}</td>
+                <td><Pill tone={a.severity}>{SEVERITY[a.severity]}</Pill></td>
+                <td><AlertState a={a} /></td>
+                <td className="nowrap">
+                  {a.state === 'resolved' ? '—' : (
+                    <>
+                      {a.state === 'active' && <><button className="small primary" onClick={run(() => api.acknowledgeAlert(a.id))}>Acknowledge</button>{' '}</>}
+                      {!a.silenced && <><button className="small" onClick={run(() => api.silenceAlert(a.id))}>Silence</button>{' '}</>}
+                      <button className="small success" onClick={clear(a)}>Clear</button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {alerts.data && !rows.length && <tr><td colSpan={7} className="sub">No alerts have been raised.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <Records n={rows.length} />
+    </>
+  )
+}
+
+export function EventsPanel({ scope, devices }) {
+  const stored = useLoad(() => api.events(scope), [scope.device_id, scope.system_id])
   const certs = useLoad(() => api.certificates(''))
   const ids = new Set(devices.map((d) => d.id))
   const keys = new Set(devices.map((d) => d.device_key))
   const nameOf = (c) => devices.find((d) => d.id === c.device_id || d.device_key === c.device_key)?.name ?? c.device_key
 
-  const events = (certs.data ?? [])
+  const fromCertificates = (certs.data ?? [])
     .filter((c) => ids.has(c.device_id) || keys.has(c.device_key))
     .flatMap((c) => [
-      { id: `${c.id}:r`, time: c.received_at, source: nameOf(c), href: `#/certificates/${c.id}`,
+      { id: `c${c.id}:r`, time: c.received_at, source: nameOf(c), href: `#/certificates/${c.id}`, severity: 'info',
         text: `Announced itself through gateway ${c.gateway_key ?? '—'} with ${c.field_count} fields (birth certificate received).` },
-      ...(c.decided_at ? [{ id: `${c.id}:d`, time: c.decided_at, source: nameOf(c), href: `#/certificates/${c.id}`,
+      ...(c.decided_at ? [{ id: `c${c.id}:d`, time: c.decided_at, source: nameOf(c), href: `#/certificates/${c.id}`, severity: 'info',
         text: c.status === 'accepted'
           ? `Birth certificate accepted${c.auto_accepted ? ' automatically: its type matched a profile' : ''}.`
           : 'Birth certificate declined.' }] : []),
     ])
-    .sort((a, b) => new Date(b.time) - new Date(a.time))
+  const fromLog = (stored.data ?? []).map((e) => ({
+    id: `e${e.id}`, time: e.occurred_at, source: e.device_name ?? e.gateway_key ?? '—', severity: e.severity, text: e.message,
+  }))
+  const events = [...fromLog, ...fromCertificates].sort((a, b) => new Date(b.time) - new Date(a.time))
 
   return (
     <>
       <p className="note">
-        Events are recorded occurrences. Today that means birth certificates: a device announcing itself and the
-        decision made about it. Equipment starts, stops and state changes are not recorded yet.
+        Events are recorded occurrences: equipment starting and stopping, gateways going offline and coming back,
+        alerts being raised, acknowledged, silenced and resolved, and devices announcing themselves. They describe
+        what happened and are never edited.
       </p>
-      <Errors errors={[certs.error]} />
+      <Errors errors={[stored.error, certs.error]} />
       <div className="list-panel table-scroll">
         <table>
           <thead><tr><th>Occurred</th><th>Source</th><th>Event</th><th>Severity</th></tr></thead>
           <tbody>
             {events.map((e) => (
               <tr key={e.id}>
-                <td className="nowrap">{new Date(e.time).toLocaleString()}</td>
+                <td className="nowrap">{when(e.time)}</td>
                 <td>{e.source}</td>
-                <td><a className="plain-link" href={e.href}>{e.text}</a></td>
-                <td><Pill tone="info">Info</Pill></td>
+                <td>{e.href ? <a className="plain-link" href={e.href}>{e.text}</a> : e.text}</td>
+                <td><Pill tone={SEVERITY[e.severity] ? e.severity : 'info'}>{SEVERITY[e.severity] ?? 'Info'}</Pill></td>
               </tr>
             ))}
-            {certs.data && !events.length && <tr><td colSpan={4} className="sub">No events recorded.</td></tr>}
+            {stored.data && certs.data && !events.length && <tr><td colSpan={4} className="sub">No events recorded.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -210,8 +222,6 @@ export function EventsPanel({ devices }) {
     </>
   )
 }
-
-// --- Documents ---------------------------------------------------------------------------
 
 export function DocumentsPanel({ name }) {
   return (

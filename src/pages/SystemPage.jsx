@@ -18,7 +18,6 @@ const TABS = [
 ]
 const typeOf = (d) => `${d.profile_key}@${d.profile_major}.${d.profile_minor}`
 
-// One system's workspace: summary, its map, its devices, and their alerts and events.
 export default function SystemPage({ id, tab }) {
   const current = TABS.some((t) => t.id === tab) ? tab : 'overview'
   const setTab = (t) => go(`#/systems/${id}${t === 'overview' ? '' : `/${t}`}`)
@@ -124,8 +123,8 @@ export default function SystemPage({ id, tab }) {
       )}
 
       {current === 'analytics' && <SystemAnalytics devices={devices} />}
-      {current === 'alerts' && <AlertsPanel states={states} />}
-      {current === 'events' && <EventsPanel devices={devices} />}
+      {current === 'alerts' && <AlertsPanel scope={{ system_id: id }} />}
+      {current === 'events' && <EventsPanel scope={{ system_id: id }} devices={devices} />}
       {current === 'documents' && <DocumentsPanel name={system.name} />}
     </>
   )

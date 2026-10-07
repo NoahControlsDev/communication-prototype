@@ -5,7 +5,6 @@ import { PageHeader, Card, Errors, Empty } from '../ui.jsx'
 import { useLive } from '../live.js'
 import { Pill, groupStatus } from '../workspace.jsx'
 
-// All systems as cards: name, how many devices, and the worst condition among them.
 export default function SystemsPage() {
   const systems = useLoad(() => api.list('systems'))
   const live = useLive()

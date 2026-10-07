@@ -1,3 +1,8 @@
+const query = (params = {}) => {
+  const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== null && v !== undefined))
+  return q.size ? `?${q}` : ''
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -37,6 +42,8 @@ export const api = {
   addExtension: (id, body) => post(`/devices/${id}/properties`, body),
   updateDeviceProperty: (id, body) => patch(`/devices/properties/${id}`, body),
   deleteDeviceProperty: (id) => del(`/devices/properties/${id}`),
+  sendCommand: (propertyId, value) => post(`/devices/properties/${propertyId}/command`, { value }),
+  deviceCommands: (id) => get(`/devices/${id}/commands`),
 
   certificates: (status) => get(`/birth-certificates${status ? `?status=${status}` : ''}`),
   certificate: (id) => get(`/birth-certificates/${id}`),
@@ -52,21 +59,25 @@ export const api = {
   deleteUnapproved: (filters) => post('/data/unapproved/delete', filters),
   promoteData: () => post('/data/promote'),
   dataDeclined: () => get('/data/declined'),
-  declineData: (body) => post('/data/declined', body), // { gateway_key, device_key, key? }
+  declineData: (body) => post('/data/declined', body),
   undeclineData: (id) => del(`/data/declined/${id}`),
   propertyHistory: (id, range = '1h') => get(`/data/properties/${id}/history?range=${range}`),
   deviceSeries: (id, range = '1h') => get(`/data/devices/${id}/series?range=${range}`),
   dataStats: (range = '1h') => get(`/data/stats?range=${range}`),
 
-  // Pipes on the system map: supply of one device into the return of another
+  alerts: (scope) => get(`/alerts${query(scope)}`),
+  acknowledgeAlert: (id) => post(`/alerts/${id}/acknowledge`),
+  silenceAlert: (id, minutes) => post(`/alerts/${id}/silence`, minutes ? { minutes } : undefined),
+  clearAlert: (id) => post(`/alerts/${id}/clear`),
+  events: (scope) => get(`/events${query(scope)}`),
+
   connections: () => get('/connections'),
-  createConnection: (body) => post('/connections', body), // { from_device_id, to_device_id }
+  createConnection: (body) => post('/connections', body),
   deleteConnection: (id) => del(`/connections/${id}`),
 
   fields: () => get('/fields'),
-  approveField: (body) => post('/fields/approve', body), // { gateway_key, device_key, key }
+  approveField: (body) => post('/fields/approve', body),
 
-  // Systems and gateways share one shape: /systems or /gateways
   list: (resource) => get(`/${resource}`),
   create: (resource, body) => post(`/${resource}`, body),
   update: (resource, id, body) => patch(`/${resource}/${id}`, body),

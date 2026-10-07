@@ -5,7 +5,6 @@ import { Errors } from '../ui.jsx'
 import RangePicker from './RangePicker.jsx'
 import TimeSeriesChart from './TimeSeriesChart.jsx'
 
-// Full history of one device property with its own range presets and a table view.
 export default function PropertyHistory({ id, onClose, title }) {
   const [range, setRange] = useState('24h')
   const history = useLoad(() => api.propertyHistory(id, range), [id, range])

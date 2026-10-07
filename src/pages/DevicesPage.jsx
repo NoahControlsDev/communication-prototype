@@ -4,7 +4,7 @@ import { useLoad, useAction, go, profileName, show, ago } from '../lib.js'
 import { PageHeader, Card, Errors, Empty, Badge, StatusBadge, GatewayDot } from '../ui.jsx'
 import { useLive } from '../live.js'
 import {
-  NOT_YET, Pill, DeviceStatusPill, RunPills, Tabs, Records, ValueTiles, pointValue,
+  Pill, DeviceStatusPill, RunPills, Tabs, Records, ValueTiles, pointValue,
   AlertsPanel, EventsPanel, DocumentsPanel,
 } from '../workspace.jsx'
 import Sparkline from '../charts/Sparkline.jsx'
@@ -18,8 +18,6 @@ export default function DevicesPage({ id, tab }) {
 
 const numOrBlank = (v) => (v === null || v === undefined ? '' : String(v))
 const typeOf = (d) => `${d.profile_key}@${d.profile_major}.${d.profile_minor}`
-
-// ------------------------------------------------------------------ all devices
 
 const COLUMNS = [
   { key: 'name', label: 'Device', value: (d) => d.name },
@@ -127,8 +125,6 @@ function DeviceList() {
   )
 }
 
-// ------------------------------------------------------------------ one device
-
 const DEVICE_TABS = ['Overview', 'Status', 'Configuration', 'Analytics', 'Alerts', 'Events', 'Documents']
   .map((label) => ({ id: label.toLowerCase(), label }))
 
@@ -143,7 +139,6 @@ function DeviceDetail({ id, tab }) {
   const d = device.data
   const s = live.states.get(id)
 
-  // Keep the values fresh, except on Configuration, where a refresh would wipe half-typed edits.
   const { reload } = device
   useEffect(() => {
     if (current === 'configuration') return undefined
@@ -196,7 +191,7 @@ function DeviceDetail({ id, tab }) {
             <div className="panel-pills"><RunPills s={s} /></div>
             <ValueTiles s={s} max={6} />
             {s && !s.points.length && <p className="sub">No values have arrived for this device yet.</p>}
-            <Controls device={d} />
+            <Controls device={d} gatewayOnline={gateway?.status === 'online'} onApplied={() => setTimeout(device.reload, 1200)} />
           </Card>
         </div>
       )}
@@ -223,30 +218,98 @@ function DeviceDetail({ id, tab }) {
       )}
 
       {current === 'analytics' && <AnalyticsTab device={d} />}
-      {current === 'alerts' && <AlertsPanel states={s ? [s] : []} />}
-      {current === 'events' && <EventsPanel devices={[d]} />}
+      {current === 'alerts' && <AlertsPanel scope={{ device_id: id }} />}
+      {current === 'events' && <EventsPanel scope={{ device_id: id }} devices={[d]} />}
       {current === 'documents' && <DocumentsPanel name={d.name} />}
     </>
   )
 }
 
-// Points the profile marks writable. There is no command path to the gateway yet, so the
-// controls are shown with their current value but can't be applied.
-function Controls({ device }) {
-  const writable = device.properties.filter((p) => p.is_standard && p.declared_writable && p.writable_override !== false)
+function Controls({ device, gatewayOnline, onApplied }) {
+  const commands = useLoad(() => api.deviceCommands(device.id), [device.id])
+  const { reload } = commands
+  useEffect(() => {
+    const t = setInterval(reload, 2000)
+    return () => clearInterval(t)
+  }, [reload])
+
+  const writable = device.properties.filter((p) => p.is_standard && p.declared_writable && p.writable_override !== false && p.approved)
   if (!writable.length) return <p className="sub top-gap">No supported operational controls are available for this equipment.</p>
+
   return (
     <div className="controls">
+      {!gatewayOnline && <p className="retention-note">Gateway {device.gateway_key} is offline, so commands can't be delivered right now.</p>}
       {writable.map((p) => (
-        <div key={p.id} className="control">
-          <label htmlFor={`control-${p.id}`}>{p.key}{p.unit && <span className="sub"> ({p.unit})</span>}</label>
-          <div className="control-row">
-            <input id={`control-${p.id}`} type="number" value={numOrBlank(p.last_value)} disabled readOnly title={NOT_YET} />
-            <button className="primary" disabled title={NOT_YET}>Apply</button>
-          </div>
-        </div>
+        <Control key={p.id} p={p} disabled={!gatewayOnline}
+          last={commands.data?.find((c) => c.device_property_id === p.id)}
+          onSent={() => { reload(); onApplied() }} />
       ))}
-      <p className="sub">Sending commands to equipment is not available yet; these show the current values only.</p>
+    </div>
+  )
+}
+
+function CommandStatus({ c }) {
+  const what = `${c.key} = ${c.value}`
+  if (c.status === 'sent') return <p className="command-status">Sent {what}, waiting for the gateway…</p>
+  if (c.status === 'applied') return <p className="command-status ok">Applied {what} by {c.requested_by}, {ago(c.result_at)}</p>
+  if (c.status === 'rejected') return <p className="command-status bad">Gateway rejected {what}: {c.reason}</p>
+  if (c.status === 'timeout') return <p className="command-status bad">No answer from the gateway to {what}, {ago(c.result_at)}</p>
+  return <p className="command-status bad">{what} was not sent: {c.reason}</p>
+}
+
+function Control({ p, last, disabled, onSent }) {
+  const action = useAction()
+  const [draft, setDraft] = useState(null)
+  const current = numOrBlank(p.last_value)
+  const value = draft ?? current
+  const lo = p.min_override ?? p.declared_min
+  const hi = p.max_override ?? p.declared_max
+  const options = p.enum_map ? Object.entries(p.enum_map) : null
+
+  const send = async (v) => {
+    if (await action.run(() => api.sendCommand(p.id, Number(v)))) {
+      setDraft(null)
+      onSent()
+    }
+  }
+  const submit = (e) => {
+    e.preventDefault()
+    if (value !== '') send(value)
+  }
+  const label = <>{p.key}{p.unit && <span className="sub"> ({p.unit})</span>}</>
+
+  return (
+    <div className="control">
+      {p.type === 'bool' ? (
+        <>
+          <span className="control-label">{label}</span>
+          <label className="switch-row">
+            <input className="switch" type="checkbox" checked={Number(current) > 0} disabled={disabled}
+              onChange={(e) => send(e.target.checked ? 1 : 0)} />
+            {Number(current) > 0 ? 'On' : 'Off'}
+          </label>
+        </>
+      ) : (
+        <form onSubmit={submit}>
+          <label className="control-label" htmlFor={`control-${p.id}`}>{label}</label>
+          <div className="control-row">
+            {options ? (
+              <select id={`control-${p.id}`} value={value} disabled={disabled} onChange={(e) => setDraft(e.target.value)}>
+                {!options.some(([k]) => k === String(value)) && <option value={value}>{value === '' ? 'Choose…' : value}</option>}
+                {options.map(([k, text]) => <option key={k} value={k}>{text}</option>)}
+              </select>
+            ) : (
+              <input id={`control-${p.id}`} type="number" step={p.type === 'int' ? 1 : 'any'} min={lo ?? undefined} max={hi ?? undefined}
+                value={value} disabled={disabled} onChange={(e) => setDraft(e.target.value)} />
+            )}
+            <button className="primary" disabled={disabled || value === '' || draft === null || String(draft) === current}>Apply</button>
+            {draft !== null && String(draft) !== current && <button type="button" onClick={() => setDraft(null)}>Reset</button>}
+          </div>
+          {(lo !== null || hi !== null) && <p className="sub">Allowed: {show(lo)} to {show(hi)}{p.unit ? ` ${p.unit}` : ''}</p>}
+        </form>
+      )}
+      {action.error && <p className="command-status bad">{action.error}</p>}
+      {!action.error && last && <CommandStatus c={last} />}
     </div>
   )
 }
@@ -330,7 +393,6 @@ function DeviceForm({ device, gateways, onSave }) {
   )
 }
 
-// pending → commissioned needs a system (§1.6); going back to pending clears it.
 function Commissioning({ device, systems, onSave }) {
   const [systemId, setSystemId] = useState(device.system_id ?? '')
   const commissioned = device.status === 'commissioned'
@@ -362,8 +424,7 @@ function Commissioning({ device, systems, onSave }) {
 
 function DeviceProperties({ device, reload, action }) {
   const [extKey, setExtKey] = useState('')
-  const [charted, setCharted] = useState(null) // device_property id shown in the history chart
-  // Last hour per property for the sparklines; refetched with the device.
+  const [charted, setCharted] = useState(null)
   const series = useLoad(() => api.deviceSeries(device.id, '1h'), [device])
   const sparkById = Object.fromEntries((series.data ?? []).map((s) => [s.id, s.points]))
   const [synced, setSynced] = useState(null)

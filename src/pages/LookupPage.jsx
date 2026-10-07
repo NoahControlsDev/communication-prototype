@@ -3,12 +3,11 @@ import { api } from '../api.js'
 import { useLoad, useAction } from '../lib.js'
 import { PageHeader, Card, Errors, Empty, Badge } from '../ui.jsx'
 
-// Systems and gateways: one text field each, so one page component serves both.
 export default function LookupPage({ title, subtitle, resource, field, column, placeholder }) {
   const rows = useLoad(() => api.list(resource), [resource])
   const action = useAction()
   const [value, setValue] = useState('')
-  const [editing, setEditing] = useState(null) // { id, value }
+  const [editing, setEditing] = useState(null)
   const hasStatus = resource === 'gateways'
 
   const create = async (e) => {
@@ -78,7 +77,6 @@ export default function LookupPage({ title, subtitle, resource, field, column, p
   )
 }
 
-// Gateway connection from bas/<GATEWAY_ID>/status (birth = online, Last Will = offline).
 function ConnectionBadge({ row }) {
   if (!row.status) return <span className="sub">never connected</span>
   return (

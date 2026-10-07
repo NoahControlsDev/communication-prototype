@@ -1,10 +1,6 @@
-// Turns devices + profiles + latest values into what the mimic draws.
-// Nothing here is device-specific: everything comes from the profile's display config.
-
-// Glyphs the Plant page can draw (see glyphs.jsx).
 export const GLYPH_NAMES = ['pump', 'vessel', 'fanbox', 'generic']
 
-export const STALE_AFTER_MS = 5 * 60 * 1000 // no reading for 5 min → stale
+export const STALE_AFTER_MS = 5 * 60 * 1000
 
 const OPS = {
   gt: (v, x) => v > x,
@@ -13,14 +9,13 @@ const OPS = {
 }
 
 export function isRunning(display, values) {
-  if (!display?.run) return null // unknown: no running rule configured
+  if (!display?.run) return null
   const v = values[display.run]?.value
   if (v === null || v === undefined) return null
   const { op = 'gt', value = 0 } = display.when ?? {}
   return (OPS[op] ?? OPS.gt)(Number(v), Number(value))
 }
 
-// One device's mimic state.
 export function deviceState(device, profile, points) {
   const values = Object.fromEntries(points.map((p) => [p.key, p]))
   const display = profile?.display ?? null
@@ -52,7 +47,6 @@ export function deviceState(device, profile, points) {
   }
 }
 
-// Systems first (in name order), then devices not placed yet, grouped by gateway.
 export function groupDevices(states) {
   const groups = new Map()
   for (const s of states) {

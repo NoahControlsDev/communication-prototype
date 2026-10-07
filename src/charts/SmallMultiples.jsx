@@ -5,11 +5,6 @@ import { useLoad } from '../lib.js'
 import { formatValue, formatTime, toSeries } from './format.js'
 import TimeSeriesChart from './TimeSeriesChart.jsx'
 
-// Every approved property of one device, one mini chart each. Units differ between
-// properties, so each gets its own y-scale (never a shared or second axis).
-// Click a mini chart to open it full size.
-// `refresh` changes when the page refreshes: data is refetched while the current charts stay
-// on screen (no loading flash, the opened chart stays open).
 export default function SmallMultiples({ deviceId, range, refresh = 0 }) {
   const series = useLoad(() => api.deviceSeries(deviceId, range), [deviceId, range, refresh])
   const [selected, setSelected] = useState(null)

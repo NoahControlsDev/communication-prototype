@@ -1,5 +1,3 @@
-// A headline number: label, value (proportional figures), optional context line.
-// `status` ('critical' | 'good') adds an icon + word, so color never carries it alone.
 export default function StatTile({ label, value, note, status }) {
   return (
     <div className="stat-tile">

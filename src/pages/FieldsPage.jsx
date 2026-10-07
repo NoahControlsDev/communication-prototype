@@ -5,10 +5,6 @@ import { PageHeader, Card, Errors, Empty, Badge } from '../ui.jsx'
 import PropertyHistory from '../charts/PropertyHistory.jsx'
 import { formatValue } from '../charts/format.js'
 
-// Every field (gateway → device → key) in one place, whatever its state, with the
-// actions that apply to it. Birth certificates remain the review workflow; this is
-// where fields are looked at.
-
 const STATES = {
   accepted:     { label: 'Accepted',     tone: 'ok' },
   not_approved: { label: 'Not approved', tone: 'warn' },
@@ -44,7 +40,6 @@ export default function FieldsPage({ search }) {
     && (!q || [f.key, f.device_key, f.device_name, f.gateway_key, f.device_type, f.meta.unit]
       .some((v) => v?.toLowerCase().includes(q)))), [all, state, gateway, q])
 
-  // gateway|device → fields
   const devices = useMemo(() => {
     const m = new Map()
     for (const f of visible) {
